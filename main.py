@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QLineEdit, QFormLayout
+from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QLineEdit, QFormLayout, QVBoxLayout, QSpacerItem, QSizePolicy
 
 class ProductEditor(QWidget):
     def __init__(self):
@@ -40,47 +40,10 @@ class ProductEditor(QWidget):
         self.button_variable_3.setMinimumHeight(40)
         self.button_variable_3.setMinimumWidth(150)
 
-        fields_1_layout = QHBoxLayout()
+        # Создаем и добавляем статичные поля
+        self.createStaticFields(main_layout)
 
-        self.name_input = QLineEdit(self)
-        self.name_input.setPlaceholderText("Наименование")
-        self.name_input.setStyleSheet("background-color: white; color: black; font-size: 16px;")
-        fields_1_layout.addWidget(self.name_input)
-        self.name_input.setMinimumSize(150, 50)
-
-        main_layout.addLayout(fields_1_layout)
-
-        fields_2_layout = QHBoxLayout()
-
-        self.brend_input = QLineEdit(self)
-        self.brend_input.setPlaceholderText("Бренд")
-        self.brend_input.setStyleSheet("background-color: white; color: black; font-size: 16px;")
-        fields_2_layout.addWidget(self.brend_input)
-        self.brend_input.setMinimumSize(150, 50)
-
-        main_layout.addLayout(fields_2_layout)
-
-        fields_3_layout = QHBoxLayout()
-
-        self.color_input = QLineEdit(self)
-        self.color_input.setPlaceholderText("Цвет")
-        self.color_input.setStyleSheet("background-color: white; color: black; font-size: 16px;")
-        fields_3_layout.addWidget(self.color_input)
-        self.color_input.setMinimumSize(150, 50)
-
-        main_layout.addLayout(fields_3_layout)
-
-        fields_4_layout = QHBoxLayout()
-
-        self.discription_input = QLineEdit(self)
-        self.discription_input.setPlaceholderText("Описание")
-        self.discription_input.setStyleSheet("background-color: white; color: black; font-size: 16px;")
-        fields_4_layout.addWidget(self.discription_input)
-        self.discription_input.setMinimumSize(150, 50)
-
-        main_layout.addLayout(fields_4_layout)
-
-        # Добавление поля и кнопки для создания нового поля
+        # Поле и кнопка для создания нового поля
         self.new_field_name_input = QLineEdit(self)
         self.new_field_name_input.setPlaceholderText("Введите название нового поля")
         self.new_field_name_input.setStyleSheet("font-size: 16px;")
@@ -93,8 +56,10 @@ class ProductEditor(QWidget):
         main_layout.addWidget(self.add_field_button)
 
         # Макет для динамически добавляемых полей
-        self.dynamic_fields_layout = QFormLayout()
-        main_layout.addLayout(self.dynamic_fields_layout)
+        self.dynamic_fields_layout = QVBoxLayout()
+        self.dynamic_fields_container = QWidget()
+        self.dynamic_fields_container.setLayout(self.dynamic_fields_layout)
+        main_layout.addWidget(self.dynamic_fields_container)
 
         # Добавление вертикального растяжения, чтобы все элементы оставались сверху
         main_layout.addStretch()
@@ -105,22 +70,75 @@ class ProductEditor(QWidget):
         self.setMinimumSize(600, 400)
         self.show()
 
+    def createStaticFields(self, layout):
+        # Создаем и добавляем статичные поля
+        self.static_fields = [
+            ('Наименование', 'name_input'),
+            ('Бренд', 'brend_input'),
+            ('Цвет', 'color_input'),
+            ('Описание', 'discription_input')
+        ]
+
+        for label_text, name in self.static_fields:
+            # Создаем горизонтальный макет для метки и поля
+            field_layout = QVBoxLayout()
+            field_label = QLabel(label_text, self)
+            field_label.setStyleSheet("font-size: 16px;")
+            field_input = QLineEdit(self)
+            field_input.setStyleSheet("background-color: white; color: black; font-size: 16px;")
+            field_input.setMinimumSize(150, 50)
+            field_layout.addWidget(field_label)
+            field_layout.addWidget(field_input)
+            layout.addLayout(field_layout)
+
+            # Сохраняем ссылку на поле ввода
+            setattr(self, name, field_input)
+
     def addNewField(self):
         # Получаем название нового поля
         field_name = self.new_field_name_input.text().strip()
 
         # Проверяем, что название не пустое
         if field_name:
-            # Создаем новое поле ввода
-            new_field = QLineEdit(self)
-            new_field.setPlaceholderText(field_name)
-            new_field.setStyleSheet("font-size: 16px;")
+            # Создаем горизонтальный макет для поля и кнопки удаления
+            field_layout = QVBoxLayout()
 
-            # Добавляем новое поле в макет
-            self.dynamic_fields_layout.addRow(new_field)
+            horizontal_layout = QHBoxLayout()
+            # Создаем новое поле ввода
+
+            field_label = QLabel(field_name, self)
+            field_label.setStyleSheet("font-size: 16px;")
+            field_input = QLineEdit(self)
+            field_input.setStyleSheet("background-color: white; color: black; font-size: 16px;")
+            field_input.setMinimumSize(150, 50)
+
+            # Создаем кнопку удаления
+            delete_button = QPushButton('Удалить', self)
+            delete_button.setStyleSheet("background-color: red; color: white; font-size: 14px;")
+            delete_button.clicked.connect(lambda _, l=field_layout: self.removeField(l))
+
+            # Добавляем поле и кнопку удаления в макет
+            field_layout.addWidget(field_label)
+            horizontal_layout.addWidget(field_input)
+            horizontal_layout.addWidget(delete_button)
+
+            field_layout.addLayout(horizontal_layout)
+
+            # Добавляем макет в основной макет
+            self.dynamic_fields_layout.addLayout(field_layout)
 
             # Очищаем поле ввода названия
             self.new_field_name_input.clear()
+
+    def removeField(self, layout):
+        # Удаляем макет и все виджеты в нем
+        for i in reversed(range(layout.count())):
+            item = layout.itemAt(i)
+            if item.widget():
+                item.widget().deleteLater()
+            elif item.layout():
+                item.layout().deleteLater()
+        layout.deleteLater()
 
     def on_button_variable_1_clicked(self):
         print("Переменная 1 выбрана")
