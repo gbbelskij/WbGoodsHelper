@@ -1,18 +1,25 @@
-from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QLineEdit, QInputDialog
+from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QLineEdit, QInputDialog, QTextEdit, QSizePolicy, QScrollArea, QFrame
 from PyQt5.QtCore import Qt
 
 
-class ClickableLabel(QLabel):
-    def __init__(self, text, parent=None):
-        super().__init__(text, parent)
-        self.setStyleSheet("border: 2px solid black; border-radius: 10px; padding: 5px; background-color: lightgray;")
-        self.setAlignment(Qt.AlignCenter)
-        self.setCursor(Qt.PointingHandCursor)
+class ClickableTextEdit(QTextEdit):
+    def __init__(self):
+        super().__init__()
+        self.setReadOnly(False)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+    def setHtml(self, html):
+        super().setHtml(html)
+        self.setReadOnly(False)
 
     def mousePressEvent(self, event):
-        # Обработка события клика
-        print(f"Clicked on: {self.text()}")
+        cursor = self.cursorForPosition(event.pos())
+        cursor.select(cursor.WordUnderCursor)
+        clicked_word = cursor.selectedText()
+        if clicked_word:
+            print("Clicked word:", clicked_word)
         super().mousePressEvent(event)
+
 
 class ProductEditor(QWidget):
     def __init__(self):
@@ -63,11 +70,15 @@ class ProductEditor(QWidget):
         self.add_field_button.setMinimumSize(150, 50)
         right_layout.addWidget(self.add_field_button)
 
-        # Макет для динамически добавляемых полей
+        # Создаем контейнер для динамических полей и прокручиваемую область
         self.dynamic_fields_layout = QVBoxLayout()
         self.dynamic_fields_container = QWidget()
         self.dynamic_fields_container.setLayout(self.dynamic_fields_layout)
-        right_layout.addWidget(self.dynamic_fields_container)
+        scroll_area = QScrollArea()
+        scroll_area.setWidget(self.dynamic_fields_container)
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setMinimumHeight(400)
+        right_layout.addWidget(scroll_area)
 
         # Добавление вертикального растяжения, чтобы все элементы оставались сверху
         right_layout.addStretch()
@@ -82,63 +93,45 @@ class ProductEditor(QWidget):
         self.show()
 
     def createStaticFields(self, layout):
-        # Создаем и добавляем статичные поля
-
         # Поле "Наименование"
-        field_layout = QVBoxLayout()
-        dynamic_layout = QHBoxLayout()
-        field_label = QLabel("Наименование", self)
-        field_label.setStyleSheet("font-size: 21px;")
-        self.name_input = QLineEdit(self)
-        self.name_input.setStyleSheet("background-color: white; color: black; font-size: 21px;")
-        self.name_input.setMinimumSize(150, 50)
-        self.name_input.textChanged.connect(lambda text, l=dynamic_layout: self.updateWords(l, self.name_input))
-        field_layout.addWidget(field_label)
-        field_layout.addWidget(self.name_input)
-        field_layout.addLayout(dynamic_layout)
-        layout.addLayout(field_layout)
+        self.add_field_with_button("Наименование", layout)
 
         # Поле "Бренд"
-        field_layout = QVBoxLayout()
-        dynamic_layout = QHBoxLayout()
-        field_label = QLabel("Бренд", self)
-        field_label.setStyleSheet("font-size: 21px;")
-        self.brend_input = QLineEdit(self)
-        self.brend_input.setStyleSheet("background-color: white; color: black; font-size: 21px;")
-        self.brend_input.setMinimumSize(150, 50)
-        self.brend_input.textChanged.connect(lambda text, l=dynamic_layout: self.updateWords(l, self.brend_input))
-        field_layout.addWidget(field_label)
-        field_layout.addWidget(self.brend_input)
-        field_layout.addLayout(dynamic_layout)
-        layout.addLayout(field_layout)
+        self.add_field_with_button("Бренд", layout)
 
         # Поле "Цвет"
+        self.add_field_with_button("Цвет", layout)
+
+        # Поле "Описание"
+        self.add_field_with_button("Описание", layout)
+
+    def add_field_with_button(self, label_text, layout):
         field_layout = QVBoxLayout()
         dynamic_layout = QHBoxLayout()
-        field_label = QLabel("Цвет", self)
+
+        field_label = QLabel(label_text, self)
         field_label.setStyleSheet("font-size: 21px;")
-        self.color_input = QLineEdit(self)
-        self.color_input.setStyleSheet("background-color: white; color: black; font-size: 21px;")
-        self.color_input.setMinimumSize(150, 50)
-        self.color_input.textChanged.connect(lambda text, l=dynamic_layout: self.updateWords(l, self.color_input))
+
+        text_input = ClickableTextEdit()
+        text_input.setStyleSheet("background-color: white; color: black; font-size: 21px;")
+        text_input.setMinimumSize(150, 50)
+        text_input.setMaximumHeight(70)
+
+        convert_button = QPushButton("Сделать слова кликабельными")
+        # Используем lambda для передачи параметра
+        convert_button.clicked.connect(lambda: self.convert_text(text_input))
+
         field_layout.addWidget(field_label)
-        field_layout.addWidget(self.color_input)
+        dynamic_layout.addWidget(text_input)
+        dynamic_layout.addWidget(convert_button)
         field_layout.addLayout(dynamic_layout)
         layout.addLayout(field_layout)
 
-        # Поле "Описание"
-        field_layout = QVBoxLayout()
-        dynamic_layout = QHBoxLayout()
-        field_label = QLabel("Описание", self)
-        field_label.setStyleSheet("font-size: 21px;")
-        self.discription_input = QLineEdit(self)
-        self.discription_input.setStyleSheet("background-color: white; color: black; font-size: 21px;")
-        self.discription_input.setMinimumSize(150, 50)
-        self.discription_input.textChanged.connect(lambda text, l=dynamic_layout: self.updateWords(l, self.discription_input))
-        field_layout.addWidget(field_label)
-        field_layout.addWidget(self.discription_input)
-        field_layout.addLayout(dynamic_layout)
-        layout.addLayout(field_layout)
+    def convert_text(self, text_input):
+        text = text_input.toPlainText()
+        words = text.split()
+        html_content = " ".join([f'<a href="#">{word}</a>' for word in words])
+        text_input.setHtml(html_content)
 
     def add_variable_button(self, text, color):
         button = QPushButton(text, self)
@@ -149,62 +142,39 @@ class ProductEditor(QWidget):
         self.button_layout.addWidget(button)
 
     def addNewField(self):
-        # Получаем название нового поля
         field_name = self.new_field_name_input.text().strip()
-
-        # Проверяем, что название не пустое
         if field_name:
-            # Создаем горизонтальный макет для поля и кнопки удаления
             field_layout = QVBoxLayout()
-
-            horizontal_layout = QHBoxLayout()
-
             dynamic_layout = QHBoxLayout()
-            # Создаем новое поле ввода
 
             field_label = QLabel(field_name, self)
             field_label.setStyleSheet("font-size: 21px;")
-            field_input = QLineEdit(self)
+            field_input = ClickableTextEdit()
             field_input.setStyleSheet("background-color: white; color: black; font-size: 21px;")
             field_input.setMinimumSize(150, 50)
-            field_input.textChanged.connect(lambda text, l=dynamic_layout: self.updateWords(l, field_input))
+            field_input.setMaximumHeight(50)
 
-            # Создаем кнопку удаления
+            convert_button = QPushButton("Сделать слова кликабельными")
+            convert_button.clicked.connect(lambda: self.convert_text(field_input))
+
             delete_button = QPushButton('Удалить', self)
             delete_button.setStyleSheet("background-color: red; color: white; font-size: 14px;")
             delete_button.clicked.connect(lambda _, l=field_layout: self.removeField(l))
 
-            # Добавляем поле и кнопку удаления в макет
             field_layout.addWidget(field_label)
-            horizontal_layout.addWidget(field_input)
-            horizontal_layout.addWidget(delete_button)
-
-            field_layout.addLayout(horizontal_layout)
+            dynamic_layout.addWidget(field_input)
+            dynamic_layout.addWidget(convert_button)
+            dynamic_layout.addWidget(delete_button)
             field_layout.addLayout(dynamic_layout)
 
-            # Добавляем макет в основной макет
             self.dynamic_fields_layout.addLayout(field_layout)
-
-            # Очищаем поле ввода названия
             self.new_field_name_input.clear()
 
-    def updateWords(self, layout, input_field):
-        # Очищаем текущие кликабельные лейблы
-        for i in reversed(range(layout.count())):
-            widget = layout.itemAt(i).widget()
-            if widget is not None:
-                widget.deleteLater()
-
-        # Получаем слова из текстового поля
-        words = input_field.text().split()
-
-        # Создаем кликабельные лейблы для каждого слова
-        for word in words:
-            clickable_label = ClickableLabel(word, self)
-            layout.addWidget(clickable_label)
-
-    def on_word_clicked(self, word):
-        print(f'Слово "{word}" было кликнуто')
+    def convert_text(self, text_input):
+        text = text_input.toPlainText()
+        words = text.split()
+        html_content = " ".join([f'<a href="#">{word}</a>' for word in words])
+        text_input.setHtml(html_content)
 
     def removeField(self, layout):
         # Удаляем макет и все виджеты в нем
